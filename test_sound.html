@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Âm Thanh</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-primary { background: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔊 Test Âm Thanh Thông Báo</h1>
+    
+    <div class="test-section">
+        <h3>1. Test Web Audio API cơ bản:</h3>
+        <button class="btn btn-primary" onclick="testBasicSound()">Test Âm Thanh Cơ Bản</button>
+        <button class="btn btn-success" onclick="testDifferentFrequencies()">Test Các Tần Số Khác Nhau</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Test âm thanh theo loại thông báo:</h3>
+        <button class="btn btn-info" onclick="playSound('info')">Test Info Sound</button>
+        <button class="btn btn-success" onclick="playSound('success')">Test Success Sound</button>
+        <button class="btn btn-warning" onclick="playSound('warning')">Test Warning Sound</button>
+        <button class="btn btn-danger" onclick="playSound('error')">Test Error Sound</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Test âm thanh đặc biệt:</h3>
+        <button class="btn btn-primary" onclick="playSound('report_reminder')">Test Report Reminder</button>
+        <button class="btn btn-info" onclick="playSound('meeting_reminder')">Test Meeting Reminder</button>
+        <button class="btn btn-warning" onclick="playSound('deadline_reminder')">Test Deadline Reminder</button>
+        <button class="btn btn-success" onclick="playSound('welcome')">Test Welcome Sound</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Test âm thanh tùy chỉnh:</h3>
+        <input type="range" id="frequency" min="200" max="2000" value="800" step="100">
+        <span id="frequencyValue">800 Hz</span>
+        <button class="btn btn-primary" onclick="playCustomSound()">Phát Âm Thanh Tùy Chỉnh</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>5. Kiểm tra hỗ trợ Web Audio API:</h3>
+        <div id="audioSupport"></div>
+    </div>
+
+    <script>
+        // Kiểm tra hỗ trợ Web Audio API
+        function checkAudioSupport() {
+            const supportDiv = document.getElementById('audioSupport');
+            if (window.AudioContext || window.webkitAudioContext) {
+                supportDiv.innerHTML = '<p style="color: green;">✅ Web Audio API được hỗ trợ</p>';
+            } else {
+                supportDiv.innerHTML = '<p style="color: red;">❌ Web Audio API không được hỗ trợ</p>';
+            }
+        }
+        
+        // Tạo âm thanh đơn giản
+        function createSimpleSound(frequency = 800, duration = 300) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration / 1000);
+                
+                console.log(`Đã phát âm thanh với tần số ${frequency}Hz`);
+                return true;
+            } catch (error) {
+                console.error('Lỗi tạo âm thanh:', error);
+                alert('Lỗi tạo âm thanh: ' + error.message);
+                return false;
+            }
+        }
+        
+        // Test âm thanh cơ bản
+        function testBasicSound() {
+            if (createSimpleSound(800, 300)) {
+                alert('✅ Âm thanh cơ bản đã được phát!');
+            }
+        }
+        
+        // Test các tần số khác nhau
+        function testDifferentFrequencies() {
+            const frequencies = [400, 600, 800, 1000, 1200];
+            let delay = 0;
+            
+            frequencies.forEach((freq, index) => {
+                setTimeout(() => {
+                    createSimpleSound(freq, 200);
+                }, delay);
+                delay += 300;
+            });
+            
+            alert('🎵 Đang phát 5 âm thanh với tần số khác nhau...');
+        }
+        
+        // Phát âm thanh theo loại
+        function playSound(type) {
+            const frequencies = {
+                'info': 800,
+                'success': 1000,
+                'warning': 600,
+                'error': 400,
+                'report_reminder': 700,
+                'meeting_reminder': 900,
+                'deadline_reminder': 500,
+                'welcome': 1200
+            };
+            
+            const frequency = frequencies[type] || 800;
+            if (createSimpleSound(frequency, 300)) {
+                alert(`✅ Đã phát âm thanh ${type} (${frequency}Hz)!`);
+            }
+        }
+        
+        // Phát âm thanh tùy chỉnh
+        function playCustomSound() {
+            const frequency = parseInt(document.getElementById('frequency').value);
+            if (createSimpleSound(frequency, 300)) {
+                alert(`✅ Đã phát âm thanh tùy chỉnh (${frequency}Hz)!`);
+            }
+        }
+        
+        // Cập nhật hiển thị tần số
+        document.getElementById('frequency').addEventListener('input', function() {
+            document.getElementById('frequencyValue').textContent = this.value + ' Hz';
+        });
+        
+        // Khởi tạo
+        checkAudioSupport();
+        
+        // Thêm event listener để kích hoạt AudioContext
+        document.addEventListener('click', function() {
+            if (window.AudioContext || window.webkitAudioContext) {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            }
+        }, { once: true });
+    </script>
+</body>
+</html> 

@@ -23,7 +23,7 @@ if ($role === 'admin_ban') {
     $users->execute();
     $users = $users->get_result();
 } else {
-    $users = $conn->query('SELECT id, name FROM users ORDER BY name');
+$users = $conn->query('SELECT id, name FROM users ORDER BY name');
 }
 // Xử lý filter
 $where = [];
@@ -72,26 +72,26 @@ $stmt->execute();
 $result = $stmt->get_result();
 // Xử lý duyệt user (chỉ admin_tong mới có quyền)
 if ($role === 'admin_tong') {
-    if (isset($_GET['approve_user'])) {
-        $uid = intval($_GET['approve_user']);
-        $stmt = $conn->prepare('UPDATE users SET is_verified = 1 WHERE id = ?');
-        $stmt->bind_param('i', $uid);
-        $stmt->execute();
-        $stmt->close();
-        header('Location: admin_reports.php?tab=users');
-        exit;
-    }
-    if (isset($_GET['delete_user'])) {
-        $uid = intval($_GET['delete_user']);
-        $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
-        $stmt->bind_param('i', $uid);
-        $stmt->execute();
-        $stmt->close();
-        header('Location: admin_reports.php?tab=users');
-        exit;
-    }
-    // Lấy user chờ duyệt
-    $pending_users = $conn->query("SELECT id, name, email, created_at FROM users WHERE is_verified = 0 ORDER BY created_at DESC");
+if (isset($_GET['approve_user'])) {
+    $uid = intval($_GET['approve_user']);
+    $stmt = $conn->prepare('UPDATE users SET is_verified = 1 WHERE id = ?');
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $stmt->close();
+    header('Location: admin_reports.php?tab=users');
+    exit;
+}
+if (isset($_GET['delete_user'])) {
+    $uid = intval($_GET['delete_user']);
+    $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $stmt->close();
+    header('Location: admin_reports.php?tab=users');
+    exit;
+}
+// Lấy user chờ duyệt
+$pending_users = $conn->query("SELECT id, name, email, created_at FROM users WHERE is_verified = 0 ORDER BY created_at DESC");
 } else {
     $pending_users = null;
 }
@@ -143,6 +143,9 @@ if (isset($_GET['delete'])) {
         <?php echo ($role === 'admin_tong') ? 'Admin tổng' : 'Admin ban'; ?>: <?php echo htmlspecialchars($admin_name); ?>
     </span>
     <div class="d-flex">
+      <a href="notification_manager.php" class="btn btn-warning me-2">
+        <i class="fa-solid fa-bell"></i> Quản lý thông báo
+      </a>
       <a href="admin_report_form.php" class="btn btn-success me-2"><i class="fa-solid fa-plus"></i> Tạo báo cáo</a>
       <a href="logout.php" class="btn btn-outline-light"><i class="fa-solid fa-sign-out-alt"></i> Đăng xuất</a>
     </div>

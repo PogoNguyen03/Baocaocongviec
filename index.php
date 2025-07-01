@@ -1,5 +1,6 @@
 <?php
 require 'db.php';
+require 'notification_helper.php';
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -166,7 +167,11 @@ if ($role === 'admin_tong') {
         }
     </style>
 </head>
-<body class="bg-light">
+<body class="bg-light" 
+      data-user-id="<?php echo $user_id; ?>" 
+      data-user-name="<?php echo htmlspecialchars($user_name); ?>" 
+      data-user-role="<?php echo $role; ?>" 
+      data-department-id="<?php echo $user_department_id; ?>">
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
   <div class="container-fluid">
     <span class="navbar-brand fw-bold"><i class="fa-solid fa-user me-2"></i><?php echo htmlspecialchars($user_name); ?></span>
@@ -255,12 +260,22 @@ if ($role === 'admin_tong') {
     </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script src="notification.js"></script>
 <script>
 function confirmDelete(id) {
     if (confirm('Bạn có chắc chắn muốn xóa báo cáo này?')) {
         window.location = 'index.php?delete=' + id + '&<?php echo http_build_query($_GET); ?>';
     }
 }
+
+// Test notification (chỉ cho admin)
+<?php if ($role === 'admin_tong' || $role === 'admin_ban'): ?>
+function testNotification() {
+    if (window.notificationClient) {
+        window.notificationClient.sendNotification('Đây là thông báo test từ admin!', 'info');
+    }
+}
+<?php endif; ?>
 </script>
 </body>
 </html> 
