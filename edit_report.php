@@ -12,9 +12,30 @@ if (!isset($_GET['id'])) {
     exit;
 }
 $report_id = intval($_GET['id']);
-// Lấy dữ liệu báo cáo
-$stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ? AND user_id = ?');
-$stmt->bind_param('ii', $report_id, $user_id);
+
+// Kiểm tra quyền và ban của user
+$stmt_role = $conn->prepare('SELECT role, department_id FROM users WHERE id = ?');
+$stmt_role->bind_param('i', $user_id);
+$stmt_role->execute();
+$stmt_role->bind_result($role, $user_department_id);
+$stmt_role->fetch();
+$stmt_role->close();
+
+// Lấy dữ liệu báo cáo với kiểm tra quyền
+if ($role === 'admin_tong') {
+    // Admin tổng có thể sửa bất kỳ báo cáo nào
+    $stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ?');
+    $stmt->bind_param('i', $report_id);
+} else if ($role === 'admin_ban') {
+    // Admin ban chỉ sửa báo cáo của ban mình
+    $stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ? AND department_id = ?');
+    $stmt->bind_param('ii', $report_id, $user_department_id);
+} else {
+    // User chỉ sửa báo cáo của mình
+    $stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ? AND user_id = ?');
+    $stmt->bind_param('ii', $report_id, $user_id);
+}
+
 $stmt->execute();
 $result = $stmt->get_result();
 if ($result->num_rows === 0) {
@@ -22,21 +43,26 @@ if ($result->num_rows === 0) {
     exit;
 }
 $report = $result->fetch_assoc();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title']);
     $content = trim($_POST['content']);
     $created_at = $_POST['created_at'];
-    $stmt = $conn->prepare('UPDATE reports SET title = ?, content = ?, created_at = ?, updated_at = NOW() WHERE id = ? AND user_id = ?');
-    $stmt->bind_param('sssii', $title, $content, $created_at, $report_id, $user_id);
+    
+    // Cập nhật báo cáo với kiểm tra quyền
+    if ($role === 'admin_tong') {
+        $stmt = $conn->prepare('UPDATE reports SET title = ?, content = ?, created_at = ?, updated_at = NOW() WHERE id = ?');
+        $stmt->bind_param('sssi', $title, $content, $created_at, $report_id);
+    } else if ($role === 'admin_ban') {
+        $stmt = $conn->prepare('UPDATE reports SET title = ?, content = ?, created_at = ?, updated_at = NOW() WHERE id = ? AND department_id = ?');
+        $stmt->bind_param('sssii', $title, $content, $created_at, $report_id, $user_department_id);
+    } else {
+        $stmt = $conn->prepare('UPDATE reports SET title = ?, content = ?, created_at = ?, updated_at = NOW() WHERE id = ? AND user_id = ?');
+        $stmt->bind_param('sssii', $title, $content, $created_at, $report_id, $user_id);
+    }
+    
     if ($stmt->execute()) {
-        // Kiểm tra role
-        $stmt_role = $conn->prepare('SELECT role FROM users WHERE id = ?');
-        $stmt_role->bind_param('i', $user_id);
-        $stmt_role->execute();
-        $stmt_role->bind_result($role);
-        $stmt_role->fetch();
-        $stmt_role->close();
-        if ($role === 'admin') {
+        if ($role === 'admin_tong' || $role === 'admin_ban') {
             header('Location: admin_reports.php');
         } else {
             header('Location: index.php');

@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (password_verify($password, $hash)) {
             $_SESSION['user_id'] = $id;
             $_SESSION['user_name'] = $name;
-            if ($role === 'admin') {
+            if ($role === 'admin_tong' || $role === 'admin_ban') {
                 header('Location: admin_reports.php');
             } else {
                 header('Location: index.php');

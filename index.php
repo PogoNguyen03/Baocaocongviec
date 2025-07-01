@@ -7,18 +7,29 @@ if (!isset($_SESSION['user_id'])) {
 }
 $user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['user_name'];
-// Kiểm tra quyền admin
-$stmt_role = $conn->prepare('SELECT role FROM users WHERE id = ?');
+// Kiểm tra quyền và ban của user
+$stmt_role = $conn->prepare('SELECT role, department_id FROM users WHERE id = ?');
 $stmt_role->bind_param('i', $user_id);
 $stmt_role->execute();
-$stmt_role->bind_result($role);
+$stmt_role->bind_result($role, $user_department_id);
 $stmt_role->fetch();
 $stmt_role->close();
 // Xử lý xóa báo cáo
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
-    $stmt = $conn->prepare('DELETE FROM reports WHERE id = ? AND user_id = ?');
-    $stmt->bind_param('ii', $delete_id, $user_id);
+    if ($role === 'admin_tong') {
+        // Admin tổng có thể xóa bất kỳ báo cáo nào
+        $stmt = $conn->prepare('DELETE FROM reports WHERE id = ?');
+        $stmt->bind_param('i', $delete_id);
+    } else if ($role === 'admin_ban') {
+        // Admin ban chỉ xóa báo cáo của ban mình
+        $stmt = $conn->prepare('DELETE FROM reports WHERE id = ? AND department_id = ?');
+        $stmt->bind_param('ii', $delete_id, $user_department_id);
+    } else {
+        // User chỉ xóa báo cáo của mình
+        $stmt = $conn->prepare('DELETE FROM reports WHERE id = ? AND user_id = ?');
+        $stmt->bind_param('ii', $delete_id, $user_id);
+    }
     $stmt->execute();
     $stmt->close();
     header('Location: index.php');
@@ -28,7 +39,8 @@ if (isset($_GET['delete'])) {
 $where = [];
 $params = [];
 $types = '';
-if ($role === 'admin') {
+if ($role === 'admin_tong') {
+    // Admin tổng xem tất cả báo cáo
     if (!empty($_GET['from_date'])) {
         $where[] = 'DATE(reports.created_at) >= ?';
         $params[] = $_GET['from_date'];
@@ -58,7 +70,42 @@ if ($role === 'admin') {
     if ($params) $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $result = $stmt->get_result();
+} else if ($role === 'admin_ban') {
+    // Admin ban chỉ xem báo cáo của ban mình
+    if (!empty($_GET['from_date'])) {
+        $where[] = 'DATE(reports.created_at) >= ?';
+        $params[] = $_GET['from_date'];
+        $types .= 's';
+    }
+    if (!empty($_GET['to_date'])) {
+        $where[] = 'DATE(reports.created_at) <= ?';
+        $params[] = $_GET['to_date'];
+        $types .= 's';
+    }
+    $where[] = 'reports.department_id = ?';
+    $params[] = $user_department_id;
+    $types .= 'i';
+    $where_sql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+    $page = max(1, intval($_GET['page'] ?? 1));
+    $limit = 10;
+    $offset = ($page - 1) * $limit;
+    // Đếm tổng số báo cáo
+    $count_sql = "SELECT COUNT(*) FROM reports JOIN users ON reports.user_id = users.id $where_sql";
+    $count_stmt = $conn->prepare($count_sql);
+    if ($params) $count_stmt->bind_param($types, ...$params);
+    $count_stmt->execute();
+    $count_stmt->bind_result($total);
+    $count_stmt->fetch();
+    $count_stmt->close();
+    $total_pages = ceil($total / $limit);
+    // Lấy báo cáo trang hiện tại
+    $sql = "SELECT reports.id, reports.title, reports.content, users.name, reports.user_id, reports.created_at FROM reports JOIN users ON reports.user_id = users.id $where_sql ORDER BY reports.created_at DESC LIMIT $limit OFFSET $offset";
+    $stmt = $conn->prepare($sql);
+    if ($params) $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
 } else {
+    // User chỉ xem báo cáo của mình
     if (!empty($_GET['from_date'])) {
         $where[] = 'DATE(created_at) >= ?';
         $params[] = $_GET['from_date'];
@@ -152,14 +199,14 @@ if ($role === 'admin') {
     </div>
     <div class="card shadow-sm">
         <div class="card-header bg-white border-bottom-0 pb-0">
-            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-table-list me-2"></i><?php echo ($role === 'admin') ? 'Tất cả báo cáo' : 'Danh sách báo cáo của bạn'; ?></h5>
+            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-table-list me-2"></i><?php echo ($role === 'admin_tong') ? 'Tất cả báo cáo' : ($role === 'admin_ban' ? 'Báo cáo của ban mình' : 'Danh sách báo cáo của bạn'); ?></h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <?php if ($role === 'admin'): ?><th>Người gửi</th><?php endif; ?>
+                            <?php if ($role === 'admin_tong' || $role === 'admin_ban'): ?><th>Người gửi</th><?php endif; ?>
                             <th>Tiêu đề</th>
                             <th>Nội dung</th>
                             <th>Ngày tạo</th>
@@ -169,13 +216,19 @@ if ($role === 'admin') {
                     <tbody>
                     <?php while ($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <?php if ($role === 'admin'): ?><td><?php echo htmlspecialchars($row['name']); ?> <span class="badge badge-user ms-1">User</span></td><?php endif; ?>
+                            <?php if ($role === 'admin_tong' || $role === 'admin_ban'): ?><td><?php echo htmlspecialchars($row['name']); ?> 
+                                <?php if ($role === 'admin_tong'): ?>
+                                    <span class="badge badge-admin ms-1">Admin tổng</span>
+                                <?php else: ?>
+                                    <span class="badge badge-user ms-1">User</span>
+                                <?php endif; ?>
+                            </td><?php endif; ?>
                             <td><?php echo htmlspecialchars($row['title']); ?></td>
                             <td class="cell-content-limit" title="<?php echo htmlspecialchars($row['content']); ?>"><?php echo htmlspecialchars(mb_strimwidth($row['content'], 0, 100, '...')); ?></td>
                             <td><?php echo $row['created_at']; ?></td>
                             <td class="text-center">
                                 <a href="view_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info me-1" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                                <?php if ($row['user_id'] == $user_id): ?>
+                                <?php if ($role === 'admin_tong' || ($role === 'admin_ban' && $row['user_id'] != $user_id) || ($role === 'user' && $row['user_id'] == $user_id)): ?>
                                     <a href="edit_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary me-1" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></a>
                                     <button onclick="confirmDelete(<?php echo $row['id']; ?>)" class="btn btn-sm btn-danger" title="Xóa"><i class="fa-solid fa-trash"></i></button>
                                 <?php endif; ?>

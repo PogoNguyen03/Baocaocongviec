@@ -5,23 +5,36 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
-// Kiểm tra quyền admin
-$stmt = $conn->prepare('SELECT role, name FROM users WHERE id = ?');
+// Kiểm tra quyền admin và ban
+$stmt = $conn->prepare('SELECT role, name, department_id FROM users WHERE id = ?');
 $stmt->bind_param('i', $_SESSION['user_id']);
 $stmt->execute();
-$stmt->bind_result($role, $admin_name);
+$stmt->bind_result($role, $admin_name, $admin_department_id);
 $stmt->fetch();
 $stmt->close();
-if ($role !== 'admin') {
+if ($role !== 'admin_ban' && $role !== 'admin_tong') {
     echo '<div style="margin:40px auto;max-width:500px;" class="alert alert-danger">Bạn không có quyền truy cập trang này!</div>';
     exit;
 }
-// Lấy danh sách user cho bộ lọc
-$users = $conn->query('SELECT id, name FROM users ORDER BY name');
+// Lấy danh sách user cho bộ lọc (chỉ user của ban mình nếu là admin_ban)
+if ($role === 'admin_ban') {
+    $users = $conn->prepare('SELECT id, name FROM users WHERE department_id = ? ORDER BY name');
+    $users->bind_param('i', $admin_department_id);
+    $users->execute();
+    $users = $users->get_result();
+} else {
+    $users = $conn->query('SELECT id, name FROM users ORDER BY name');
+}
 // Xử lý filter
 $where = [];
 $params = [];
 $types = '';
+if ($role === 'admin_ban') {
+    // Admin ban chỉ xem báo cáo của ban mình
+    $where[] = 'reports.department_id = ?';
+    $params[] = $admin_department_id;
+    $types .= 'i';
+}
 if (!empty($_GET['user_id'])) {
     $where[] = 'reports.user_id = ?';
     $params[] = $_GET['user_id'];
@@ -57,33 +70,43 @@ $stmt = $conn->prepare($sql);
 if ($params) $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
-// Xử lý duyệt user
-if (isset($_GET['approve_user'])) {
-    $uid = intval($_GET['approve_user']);
-    $stmt = $conn->prepare('UPDATE users SET is_verified = 1 WHERE id = ?');
-    $stmt->bind_param('i', $uid);
-    $stmt->execute();
-    $stmt->close();
-    header('Location: admin_reports.php?tab=users');
-    exit;
+// Xử lý duyệt user (chỉ admin_tong mới có quyền)
+if ($role === 'admin_tong') {
+    if (isset($_GET['approve_user'])) {
+        $uid = intval($_GET['approve_user']);
+        $stmt = $conn->prepare('UPDATE users SET is_verified = 1 WHERE id = ?');
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $stmt->close();
+        header('Location: admin_reports.php?tab=users');
+        exit;
+    }
+    if (isset($_GET['delete_user'])) {
+        $uid = intval($_GET['delete_user']);
+        $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $stmt->close();
+        header('Location: admin_reports.php?tab=users');
+        exit;
+    }
+    // Lấy user chờ duyệt
+    $pending_users = $conn->query("SELECT id, name, email, created_at FROM users WHERE is_verified = 0 ORDER BY created_at DESC");
+} else {
+    $pending_users = null;
 }
-if (isset($_GET['delete_user'])) {
-    $uid = intval($_GET['delete_user']);
-    $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
-    $stmt->bind_param('i', $uid);
-    $stmt->execute();
-    $stmt->close();
-    header('Location: admin_reports.php?tab=users');
-    exit;
-}
-// Lấy user chờ duyệt
-$pending_users = $conn->query("SELECT id, name, email, created_at FROM users WHERE is_verified = 0 ORDER BY created_at DESC");
-// Xử lý xóa báo cáo (chỉ cho phép admin xóa báo cáo của chính mình)
+// Xử lý xóa báo cáo
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
-    $admin_id = $_SESSION['user_id'];
-    $stmt = $conn->prepare('DELETE FROM reports WHERE id = ? AND user_id = ?');
-    $stmt->bind_param('ii', $delete_id, $admin_id);
+    if ($role === 'admin_tong') {
+        // Admin tổng có thể xóa bất kỳ báo cáo nào
+        $stmt = $conn->prepare('DELETE FROM reports WHERE id = ?');
+        $stmt->bind_param('i', $delete_id);
+    } else {
+        // Admin ban chỉ xóa báo cáo của ban mình
+        $stmt = $conn->prepare('DELETE FROM reports WHERE id = ? AND department_id = ?');
+        $stmt->bind_param('ii', $delete_id, $admin_department_id);
+    }
     $stmt->execute();
     $stmt->close();
     // Giữ lại filter khi reload
@@ -115,7 +138,10 @@ if (isset($_GET['delete'])) {
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
   <div class="container-fluid">
-    <span class="navbar-brand fw-bold"><i class="fa-solid fa-user-shield me-2"></i>Admin: <?php echo htmlspecialchars($admin_name); ?></span>
+    <span class="navbar-brand fw-bold">
+        <i class="fa-solid fa-user-shield me-2"></i>
+        <?php echo ($role === 'admin_tong') ? 'Admin tổng' : 'Admin ban'; ?>: <?php echo htmlspecialchars($admin_name); ?>
+    </span>
     <div class="d-flex">
       <a href="admin_report_form.php" class="btn btn-success me-2"><i class="fa-solid fa-plus"></i> Tạo báo cáo</a>
       <a href="logout.php" class="btn btn-outline-light"><i class="fa-solid fa-sign-out-alt"></i> Đăng xuất</a>
@@ -123,6 +149,7 @@ if (isset($_GET['delete'])) {
   </div>
 </nav>
 <div class="container py-2">
+<?php if ($role === 'admin_tong'): ?>
 <ul class="nav nav-tabs mb-3">
   <li class="nav-item">
     <a class="nav-link <?php if (!isset($_GET['tab']) || $_GET['tab']!=='users') echo 'active'; ?>" href="admin_reports.php">Báo cáo</a>
@@ -131,6 +158,7 @@ if (isset($_GET['delete'])) {
     <a class="nav-link <?php if (isset($_GET['tab']) && $_GET['tab']==='users') echo 'active'; ?>" href="admin_reports.php?tab=users">Duyệt người dùng mới</a>
   </li>
 </ul>
+<?php endif; ?>
 <?php if (isset($_GET['tab']) && $_GET['tab']==='users'): ?>
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-white fw-bold"><i class="fa-solid fa-user-clock me-2"></i>Người dùng chờ duyệt</div>
@@ -195,7 +223,10 @@ if (isset($_GET['delete'])) {
     </div>
     <div class="card shadow-sm">
         <div class="card-header bg-white border-bottom-0 pb-0">
-            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-table-list me-2"></i>Danh sách tất cả báo cáo</h5>
+            <h5 class="mb-0 fw-bold">
+                <i class="fa-solid fa-table-list me-2"></i>
+                <?php echo ($role === 'admin_tong') ? 'Danh sách tất cả báo cáo' : 'Danh sách báo cáo của ban mình'; ?>
+            </h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -215,8 +246,10 @@ if (isset($_GET['delete'])) {
                         <tr>
                             <td>
                                 <?php echo htmlspecialchars($row['name']); ?>
-                                <?php if ($row['role'] === 'admin'): ?>
-                                    <span class="badge badge-admin ms-1">Admin</span>
+                                <?php if ($row['role'] === 'admin_tong'): ?>
+                                    <span class="badge badge-admin ms-1">Admin tổng</span>
+                                <?php elseif ($row['role'] === 'admin_ban'): ?>
+                                    <span class="badge badge-admin ms-1">Admin ban</span>
                                 <?php else: ?>
                                     <span class="badge badge-user ms-1">User</span>
                                 <?php endif; ?>
@@ -228,7 +261,7 @@ if (isset($_GET['delete'])) {
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-2">
                                     <a href="view_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                                    <?php if ($row['user_id'] == $_SESSION['user_id']): ?>
+                                    <?php if ($role === 'admin_tong' || ($role === 'admin_ban' && $row['user_id'] != $_SESSION['user_id']) || ($row['user_id'] == $_SESSION['user_id'])): ?>
                                         <a href="edit_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></a>
                                         <button onclick="confirmDelete(<?php echo $row['id']; ?>)" class="btn btn-sm btn-danger" title="Xóa"><i class="fa-solid fa-trash"></i></button>
                                     <?php endif; ?>

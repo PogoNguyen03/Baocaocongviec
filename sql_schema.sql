@@ -7,7 +7,9 @@ CREATE TABLE `users` (
   `is_verified` TINYINT(1) DEFAULT 0,
   `verification_code` VARCHAR(100),
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `role` ENUM('user', 'admin') NOT NULL DEFAULT 'user'
+  `role` ENUM('user', 'admin_ban', 'admin_tong') NOT NULL DEFAULT 'user',
+  `department_id` INT DEFAULT NULL,
+  FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Bảng reports
@@ -18,7 +20,20 @@ CREATE TABLE `reports` (
   `content` TEXT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NULL,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+  `department_id` INT DEFAULT NULL,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-UPDATE users SET role = 'admin' WHERE email = 'email_admin@domain.com'; 
+-- Bảng departments
+CREATE TABLE `departments` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Thêm dữ liệu mẫu cho departments
+INSERT INTO `departments` (`name`) VALUES ('ban hr'), ('ban SEO'), ('ban IT');
+
+-- Cập nhật quyền cho các tài khoản admin
+UPDATE users SET role = 'admin_ban' WHERE email = 'arkhip04122003@gmail.com';
+UPDATE users SET role = 'admin_tong' WHERE email = 'nguyencanhphong135@gmail.com'; 

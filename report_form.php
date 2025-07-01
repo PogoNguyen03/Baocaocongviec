@@ -11,8 +11,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = trim($_POST['content']);
     $user_id = $_SESSION['user_id'];
     $created_at = date('Y-m-d H:i:s');
-    $stmt = $conn->prepare('INSERT INTO reports (user_id, title, content, created_at) VALUES (?, ?, ?, ?)');
-    $stmt->bind_param('isss', $user_id, $title, $content, $created_at);
+    
+    // Lấy department_id của user
+    $stmt_dept = $conn->prepare('SELECT department_id FROM users WHERE id = ?');
+    $stmt_dept->bind_param('i', $user_id);
+    $stmt_dept->execute();
+    $stmt_dept->bind_result($department_id);
+    $stmt_dept->fetch();
+    $stmt_dept->close();
+    
+    $stmt = $conn->prepare('INSERT INTO reports (user_id, title, content, created_at, department_id) VALUES (?, ?, ?, ?, ?)');
+    $stmt->bind_param('isssi', $user_id, $title, $content, $created_at, $department_id);
     if ($stmt->execute()) {
         header('Location: index.php');
         exit;
