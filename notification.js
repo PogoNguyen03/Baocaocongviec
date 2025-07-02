@@ -288,7 +288,7 @@ class NotificationClient {
     
     isAdmin() {
         const role = this.getUserRole();
-        return role === 'admin_tong' || role === 'admin_ban';
+        return role === 'admin' || role === 'quanly';
     }
     
     showNotification(data) {

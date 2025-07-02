@@ -12,7 +12,7 @@ $stmt->execute();
 $stmt->bind_result($role);
 $stmt->fetch();
 $stmt->close();
-if ($role !== 'admin_ban' && $role !== 'admin_tong') {
+if ($role !== 'quanly' && $role !== 'admin') {
     echo '<div style="margin:40px auto;max-width:500px;" class="alert alert-danger">Bạn không có quyền truy cập trang này!</div>';
     exit;
 }

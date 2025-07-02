@@ -15,14 +15,14 @@ INSERT IGNORE INTO `departments` (`name`) VALUES
 
 -- 3. Cập nhật dữ liệu role cũ trước khi thay đổi cấu trúc
 -- Chuyển 2 tài khoản admin cụ thể
-UPDATE `users` SET `role` = 'admin_ban' WHERE `email` = 'arkhip04122003@gmail.com';
-UPDATE `users` SET `role` = 'admin_tong' WHERE `email` = 'nguyencanhphong135@gmail.com';
+UPDATE `users` SET `role` = 'admin' WHERE `email` = 'arkhip04122003@gmail.com';
+UPDATE `users` SET `role` = 'admin' WHERE `email` = 'nguyencanhphong135@gmail.com';
 -- Chuyển các tài khoản admin khác thành user
-UPDATE `users` SET `role` = 'user' WHERE `role` = 'admin' AND `email` NOT IN ('arkhip04122003@gmail.com', 'nguyencanhphong135@gmail.com');
+UPDATE `users` SET `role` = 'user' WHERE `role` NOT IN ('admin', 'quanly', 'nhomtruong', 'user');
 
 -- 5. Cập nhật trường role trong bảng users
 ALTER TABLE `users` 
-MODIFY COLUMN `role` ENUM('user', 'admin_ban', 'admin_tong') NOT NULL DEFAULT 'user';
+MODIFY COLUMN `role` ENUM('admin', 'quanly', 'nhomtruong', 'user') NOT NULL DEFAULT 'user';
 
 -- 6. Thêm trường department_id vào bảng reports
 ALTER TABLE `reports` 
@@ -45,4 +45,7 @@ SELECT COUNT(*) as total_reports FROM reports;
 SELECT COUNT(*) as total_departments FROM departments;
 
 -- 10. Kiểm tra quyền của các tài khoản admin
-SELECT email, role, department_id FROM users WHERE role IN ('admin_ban', 'admin_tong'); 
+SELECT email, role, department_id FROM users WHERE role IN ('admin', 'quanly');
+
+-- Ví dụ: Gán user có id = 5 làm nhóm trưởng
+UPDATE users SET role = 'nhomtruong' WHERE id = 5; 

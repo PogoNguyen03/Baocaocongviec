@@ -9,36 +9,44 @@ class NotificationHelper {
     /**
      * Gửi thông báo tới tất cả user
      */
-    public function sendToAll($message, $type = 'info') {
-        return $this->sendNotification([
+    public function sendToAll($message, $type = 'info', $excludeUserId = null, $roles = null) {
+        $data = [
             'message' => $message,
             'type' => $type,
             'target' => 'all'
-        ]);
+        ];
+        if ($excludeUserId) $data['excludeUserId'] = $excludeUserId;
+        if ($roles) $data['roles'] = $roles;
+        return $this->sendNotification($data);
     }
     
     /**
      * Gửi thông báo tới user trong ban cụ thể
      */
-    public function sendToDepartment($message, $departmentId, $type = 'info') {
-        return $this->sendNotification([
+    public function sendToDepartment($message, $departmentId, $type = 'info', $excludeUserId = null, $roles = null) {
+        $data = [
             'message' => $message,
             'type' => $type,
             'target' => 'department',
             'departmentId' => $departmentId
-        ]);
+        ];
+        if ($excludeUserId) $data['excludeUserId'] = $excludeUserId;
+        if ($roles) $data['roles'] = $roles;
+        return $this->sendNotification($data);
     }
     
     /**
      * Gửi thông báo tới user cụ thể
      */
-    public function sendToUser($message, $userId, $type = 'info') {
-        return $this->sendNotification([
+    public function sendToUser($message, $userId, $type = 'info', $excludeUserId = null) {
+        $data = [
             'message' => $message,
             'type' => $type,
             'target' => 'user',
             'userId' => $userId
-        ]);
+        ];
+        if ($excludeUserId) $data['excludeUserId'] = $excludeUserId;
+        return $this->sendNotification($data);
     }
     
     /**

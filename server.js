@@ -54,18 +54,21 @@ io.on('connection', socket => {
     console.log('Admin notification:', data);
     // Gửi thông báo tới tất cả user hoặc user cụ thể
     if (data.target === 'all') {
-      io.emit('notification', data);
+      onlineUsers.forEach((userData, socketId) => {
+        if ((data.excludeUserId && userData.userId == data.excludeUserId) || (data.roles && !data.roles.includes(userData.role))) return;
+        io.to(socketId).emit('notification', data);
+      });
     } else if (data.target === 'department') {
-      // Gửi cho user trong cùng department
       onlineUsers.forEach((userData, socketId) => {
         if (userData.departmentId == data.departmentId) {
+          if ((data.excludeUserId && userData.userId == data.excludeUserId) || (data.roles && !data.roles.includes(userData.role))) return;
           io.to(socketId).emit('notification', data);
         }
       });
     } else if (data.target === 'user') {
-      // Gửi cho user cụ thể
       onlineUsers.forEach((userData, socketId) => {
         if (userData.userId == data.userId) {
+          if (data.excludeUserId && userData.userId == data.excludeUserId) return;
           io.to(socketId).emit('notification', data);
         }
       });
@@ -75,12 +78,12 @@ io.on('connection', socket => {
 
 // API endpoint để PHP gửi thông báo
 app.post('/notify', (req, res) => {
-  const { message, type, target, departmentId, userId } = req.body;
+  const { message, type, target, departmentId, userId, excludeUserId, roles } = req.body;
   
   const notificationData = {
     message: message,
-    type: type || 'info', // info, warning, success, error
-    target: target || 'all', // all, department, user
+    type: type || 'info',
+    target: target || 'all',
     departmentId: departmentId,
     userId: userId,
     timestamp: new Date().toISOString()
@@ -90,16 +93,21 @@ app.post('/notify', (req, res) => {
   
   // Gửi thông báo qua Socket.IO
   if (target === 'all') {
-    io.emit('notification', notificationData);
+    onlineUsers.forEach((userData, socketId) => {
+      if ((excludeUserId && userData.userId == excludeUserId) || (roles && !roles.includes(userData.role))) return;
+      io.to(socketId).emit('notification', notificationData);
+    });
   } else if (target === 'department') {
     onlineUsers.forEach((userData, socketId) => {
       if (userData.departmentId == departmentId) {
+        if ((excludeUserId && userData.userId == excludeUserId) || (roles && !roles.includes(userData.role))) return;
         io.to(socketId).emit('notification', notificationData);
       }
     });
   } else if (target === 'user') {
     onlineUsers.forEach((userData, socketId) => {
       if (userData.userId == userId) {
+        if (excludeUserId && userData.userId == excludeUserId) return;
         io.to(socketId).emit('notification', notificationData);
       }
     });

@@ -22,16 +22,16 @@ $stmt_role->fetch();
 $stmt_role->close();
 
 // Lấy dữ liệu báo cáo với kiểm tra quyền
-if ($role === 'admin_tong') {
-    // Admin tổng có thể sửa bất kỳ báo cáo nào
+if ($role === 'admin') {
+    // Admin có thể sửa bất kỳ báo cáo nào
     $stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ?');
     $stmt->bind_param('i', $report_id);
-} else if ($role === 'admin_ban') {
-    // Admin ban chỉ sửa báo cáo của ban mình
+} else if ($role === 'quanly') {
+    // Quản lý chỉ sửa báo cáo của ban mình
     $stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ? AND department_id = ?');
     $stmt->bind_param('ii', $report_id, $user_department_id);
 } else {
-    // User chỉ sửa báo cáo của mình
+    // Nhóm trưởng và user chỉ sửa báo cáo của mình
     $stmt = $conn->prepare('SELECT title, content, created_at FROM reports WHERE id = ? AND user_id = ?');
     $stmt->bind_param('ii', $report_id, $user_id);
 }
@@ -50,10 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $created_at = $_POST['created_at'];
     
     // Cập nhật báo cáo với kiểm tra quyền
-    if ($role === 'admin_tong') {
+    if ($role === 'admin') {
         $stmt = $conn->prepare('UPDATE reports SET title = ?, content = ?, created_at = ?, updated_at = NOW() WHERE id = ?');
         $stmt->bind_param('sssi', $title, $content, $created_at, $report_id);
-    } else if ($role === 'admin_ban') {
+    } else if ($role === 'quanly') {
         $stmt = $conn->prepare('UPDATE reports SET title = ?, content = ?, created_at = ?, updated_at = NOW() WHERE id = ? AND department_id = ?');
         $stmt->bind_param('sssii', $title, $content, $created_at, $report_id, $user_department_id);
     } else {
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if ($stmt->execute()) {
-        if ($role === 'admin_tong' || $role === 'admin_ban') {
+        if ($role === 'admin') {
             header('Location: admin_reports.php');
         } else {
             header('Location: index.php');

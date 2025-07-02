@@ -19,51 +19,9 @@ function createSimpleSound(frequency = 800, duration = 200) {
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + duration / 1000);
-    
-    return audioContext;
 }
 
-// Âm thanh thông báo thông tin (tiếng "ding" nhẹ)
-const INFO_SOUND = createSimpleSound(800, 200);
-
-// Âm thanh thành công (tiếng "success" vui vẻ)
-const SUCCESS_SOUND = createSimpleSound(1000, 300);
-
-// Âm thanh cảnh báo (tiếng "warning" nghiêm túc)
-const WARNING_SOUND = createSimpleSound(600, 400);
-
-// Âm thanh lỗi (tiếng "error" nghiêm trọng)
-const ERROR_SOUND = createSimpleSound(400, 500);
-
-// Âm thanh mặc định
-const DEFAULT_SOUND = createSimpleSound(800, 200);
-
-// Âm thanh nhắc nhở báo cáo
-const REPORT_REMINDER_SOUND = createSimpleSound(700, 300);
-
-// Âm thanh cuộc họp
-const MEETING_SOUND = createSimpleSound(900, 250);
-
-// Âm thanh deadline
-const DEADLINE_SOUND = createSimpleSound(500, 400);
-
-// Âm thanh chào mừng
-const WELCOME_SOUND = createSimpleSound(1200, 200);
-
-// Export các âm thanh
-window.NotificationSounds = {
-    INFO_SOUND,
-    SUCCESS_SOUND,
-    WARNING_SOUND,
-    ERROR_SOUND,
-    DEFAULT_SOUND,
-    REPORT_REMINDER_SOUND,
-    MEETING_SOUND,
-    DEADLINE_SOUND,
-    WELCOME_SOUND
-};
-
-// Hàm phát âm thanh đơn giản
+// Hàm phát âm thanh đơn giản cho từng loại
 window.playSimpleSound = function(type = 'default') {
     try {
         const frequencies = {
@@ -80,8 +38,6 @@ window.playSimpleSound = function(type = 'default') {
         
         const frequency = frequencies[type] || 800;
         createSimpleSound(frequency, 300);
-        
-        console.log(`Đã phát âm thanh ${type} với tần số ${frequency}Hz`);
     } catch (error) {
         console.error('Lỗi phát âm thanh:', error);
     }

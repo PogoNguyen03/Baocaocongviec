@@ -1,5 +1,6 @@
 <?php
 // db.php
+date_default_timezone_set('Asia/Ho_Chi_Minh');
 $host = 'localhost';
 $db   = 'baocao'; // Đổi tên DB nếu cần
 $user = 'root';

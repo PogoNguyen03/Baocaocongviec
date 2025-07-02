@@ -16,7 +16,7 @@ $stmt->bind_result($role, $admin_name, $admin_department_id);
 $stmt->fetch();
 $stmt->close();
 
-if ($role !== 'admin_tong' && $role !== 'admin_ban') {
+if ($role !== 'admin' && $role !== 'quanly' && $role !== 'nhomtruong') {
     echo '<div style="margin:40px auto;max-width:500px;" class="alert alert-danger">Bạn không có quyền truy cập trang này!</div>';
     exit;
 }
@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $target_type = $_POST['target_type'];
     $department_id = intval($_POST['department_id'] ?? 0);
     $user_id = intval($_POST['user_id'] ?? 0);
+    $excludeUserId = $_SESSION['user_id'];
     
     switch ($notification_type) {
         case 'custom':
@@ -36,11 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'Vui lòng nhập nội dung thông báo!';
             } else {
                 if ($target_type === 'all') {
-                    $notification->sendToAll($custom_message, 'info');
+                    if ($role === 'admin') {
+                        $notification->sendToAll($custom_message, 'info', $excludeUserId, ['quanly','nhomtruong','user']);
+                    } else {
+                        $notification->sendToAll($custom_message, 'info', $excludeUserId);
+                    }
                 } elseif ($target_type === 'department') {
-                    $notification->sendToDepartment($custom_message, $department_id, 'info');
+                    if ($role === 'quanly') {
+                        $notification->sendToDepartment($custom_message, $department_id, 'info', $excludeUserId, ['nhomtruong','user']);
+                    } else {
+                        $notification->sendToDepartment($custom_message, $department_id, 'info', $excludeUserId);
+                    }
                 } elseif ($target_type === 'user') {
-                    $notification->sendToUser($custom_message, $user_id, 'info');
+                    $notification->sendToUser($custom_message, $user_id, 'info', $excludeUserId);
                 }
                 $message = 'Thông báo đã được gửi thành công!';
             }
@@ -48,9 +57,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         case 'report_reminder':
             if ($target_type === 'all') {
-                $notification->sendReportReminder();
+                if ($role === 'admin') {
+                    $notification->sendToAll('📢 Nhắc nhở: Hôm nay bạn chưa báo cáo công việc!', 'warning', $excludeUserId, ['quanly','nhomtruong','user']);
+                } else {
+                    $notification->sendToAll('📢 Nhắc nhở: Hôm nay bạn chưa báo cáo công việc!', 'warning', $excludeUserId);
+                }
             } elseif ($target_type === 'department') {
-                $notification->sendReportReminder($department_id);
+                if ($role === 'quanly') {
+                    $notification->sendToDepartment('📢 Nhắc nhở: Hôm nay bạn chưa báo cáo công việc!', $department_id, 'warning', $excludeUserId, ['nhomtruong','user']);
+                } else {
+                    $notification->sendToDepartment('📢 Nhắc nhở: Hôm nay bạn chưa báo cáo công việc!', $department_id, 'warning', $excludeUserId);
+                }
             }
             $message = 'Nhắc nhở báo cáo đã được gửi!';
             break;
@@ -58,9 +75,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'meeting_reminder':
             $meeting_msg = "📅 Nhắc nhở: Có cuộc họp quan trọng sắp diễn ra!";
             if ($target_type === 'all') {
-                $notification->sendToAll($meeting_msg, 'warning');
+                if ($role === 'admin') {
+                    $notification->sendToAll($meeting_msg, 'warning', $excludeUserId, ['quanly','nhomtruong','user']);
+                } else {
+                    $notification->sendToAll($meeting_msg, 'warning', $excludeUserId);
+                }
             } elseif ($target_type === 'department') {
-                $notification->sendToDepartment($meeting_msg, $department_id, 'warning');
+                if ($role === 'quanly') {
+                    $notification->sendToDepartment($meeting_msg, $department_id, 'warning', $excludeUserId, ['nhomtruong','user']);
+                } else {
+                    $notification->sendToDepartment($meeting_msg, $department_id, 'warning', $excludeUserId);
+                }
             }
             $message = 'Nhắc nhở cuộc họp đã được gửi!';
             break;
@@ -68,9 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'deadline_reminder':
             $deadline_msg = "⏰ Nhắc nhở: Deadline báo cáo sắp đến!";
             if ($target_type === 'all') {
-                $notification->sendToAll($deadline_msg, 'warning');
+                if ($role === 'admin') {
+                    $notification->sendToAll($deadline_msg, 'warning', $excludeUserId, ['quanly','nhomtruong','user']);
+                } else {
+                    $notification->sendToAll($deadline_msg, 'warning', $excludeUserId);
+                }
             } elseif ($target_type === 'department') {
-                $notification->sendToDepartment($deadline_msg, $department_id, 'warning');
+                if ($role === 'quanly') {
+                    $notification->sendToDepartment($deadline_msg, $department_id, 'warning', $excludeUserId, ['nhomtruong','user']);
+                } else {
+                    $notification->sendToDepartment($deadline_msg, $department_id, 'warning', $excludeUserId);
+                }
             }
             $message = 'Nhắc nhở deadline đã được gửi!';
             break;
@@ -81,13 +114,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $departments = $conn->query('SELECT id, name FROM departments ORDER BY name');
 
 // Lấy danh sách user (theo quyền)
-if ($role === 'admin_ban') {
+if ($role === 'admin') {
+    $users = $conn->query('SELECT id, name, email FROM users ORDER BY name');
+} else if ($role === 'quanly') {
     $users = $conn->prepare('SELECT id, name, email FROM users WHERE department_id = ? ORDER BY name');
     $users->bind_param('i', $admin_department_id);
     $users->execute();
     $users = $users->get_result();
-} else {
-    $users = $conn->query('SELECT id, name, email FROM users ORDER BY name');
+} else if ($role === 'nhomtruong') {
+    $users = $conn->prepare("SELECT id, name, email FROM users WHERE department_id = ? AND role = 'user' ORDER BY name");
+    $users->bind_param('i', $admin_department_id);
+    $users->execute();
+    $users = $users->get_result();
 }
 
 // Lấy thống kê user online
@@ -121,10 +159,10 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
     <div class="container-fluid">
         <span class="navbar-brand fw-bold">
             <i class="fa-solid fa-bell me-2"></i>
-            Quản lý thông báo - <?php echo ($role === 'admin_tong') ? 'Admin tổng' : 'Admin ban'; ?>
+            Quản lý thông báo - <?php echo ($role === 'admin') ? 'Admin tổng' : ($role === 'quanly' ? 'Admin ban' : 'Nhóm trưởng'); ?>
         </span>
         <div class="d-flex">
-            <a href="<?php echo ($role === 'admin_tong' || $role === 'admin_ban') ? 'admin_reports.php' : 'index.php'; ?>" class="btn btn-outline-light me-2">
+            <a href="<?php echo ($role === 'admin' || $role === 'quanly') ? 'admin_reports.php' : 'index.php'; ?>" class="btn btn-outline-light me-2">
                 <i class="fa-solid fa-arrow-left"></i> Quay lại
             </a>
             <a href="logout.php" class="btn btn-outline-light">
@@ -159,7 +197,7 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
             <div class="card stats-card">
                 <div class="card-body text-center">
                     <i class="fa-solid fa-user-shield fa-2x mb-2"></i>
-                    <h4><?php echo $role === 'admin_tong' ? 'Admin tổng' : 'Admin ban'; ?></h4>
+                    <h4><?php echo $role === 'admin' ? 'Admin tổng' : ($role === 'quanly' ? 'Admin ban' : 'Nhóm trưởng'); ?></h4>
                     <p class="mb-0">Quyền hiện tại</p>
                 </div>
             </div>
@@ -203,12 +241,15 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Đối tượng nhận</label>
                             <select name="target_type" class="form-select" id="targetType">
-                                <option value="all">Tất cả user</option>
-                                <?php if ($role === 'admin_tong'): ?>
+                                <?php if ($role === 'admin'): ?>
+                                    <option value="all">Tất cả user</option>
                                     <option value="department">Theo ban</option>
                                     <option value="user">User cụ thể</option>
-                                <?php elseif ($role === 'admin_ban'): ?>
+                                <?php elseif ($role === 'quanly'): ?>
                                     <option value="department">Ban của tôi</option>
+                                    <option value="user">User cụ thể</option>
+                                <?php elseif ($role === 'nhomtruong'): ?>
+                                    <option value="user">User cụ thể</option>
                                 <?php endif; ?>
                             </select>
                         </div>
@@ -219,7 +260,7 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
                             <select name="department_id" class="form-select">
                                 <?php $departments->data_seek(0); while ($dept = $departments->fetch_assoc()): ?>
                                     <option value="<?php echo $dept['id']; ?>" 
-                                            <?php if ($role === 'admin_ban' && $dept['id'] == $admin_department_id) echo 'selected'; ?>>
+                                            <?php if ($role === 'quanly' && $dept['id'] == $admin_department_id) echo 'selected'; ?>>
                                         <?php echo htmlspecialchars($dept['name']); ?>
                                     </option>
                                 <?php endwhile; ?>
@@ -269,7 +310,7 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
                     </div>
                     
                     <!-- Test âm thanh -->
-                    <hr>
+                    <!-- <hr>
                     <h6 class="mb-2"><i class="fa-solid fa-volume-high me-2"></i>Test âm thanh</h6>
                     <div class="d-grid gap-2">
                         <button class="btn btn-outline-primary btn-sm" onclick="testSound('info')">
@@ -284,7 +325,7 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
                         <button class="btn btn-outline-danger btn-sm" onclick="testSound('error')">
                             <i class="fa-solid fa-play me-2"></i>Test Error
                         </button>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -417,9 +458,9 @@ function testSound(type) {
 }
 
 // Auto refresh user online list
-setInterval(function() {
-    location.reload();
-}, 30000); // Refresh mỗi 30 giây
+// setInterval(function() {
+//     location.reload();
+// }, 30000); // Refresh mỗi 30 giây
 </script>
 </body>
 </html> 

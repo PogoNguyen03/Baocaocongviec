@@ -11,10 +11,10 @@ if (!isset($_GET['id'])) {
 }
 $report_id = intval($_GET['id']);
 // Lấy thông tin báo cáo và user
-$stmt = $conn->prepare('SELECT reports.title, reports.content, reports.created_at, users.name, users.email FROM reports JOIN users ON reports.user_id = users.id WHERE reports.id = ?');
+$stmt = $conn->prepare('SELECT reports.title, reports.content, reports.created_at, users.name, users.email, users.role FROM reports JOIN users ON reports.user_id = users.id WHERE reports.id = ?');
 $stmt->bind_param('i', $report_id);
 $stmt->execute();
-$stmt->bind_result($title, $content, $created_at, $user_name, $user_email);
+$stmt->bind_result($title, $content, $created_at, $user_name, $user_email, $user_role);
 if ($stmt->fetch()) {
     // Hiển thị bên dưới
 } else {
@@ -43,7 +43,17 @@ $stmt->close();
                 <div class="card-header bg-info text-white fw-bold"><i class="fa-solid fa-eye me-2"></i>Chi tiết báo cáo</div>
                 <div class="card-body">
                     <h5 class="card-title mb-3">Tiêu đề: <span class="fw-semibold"><?php echo htmlspecialchars($title); ?></span></h5>
-                    <p class="mb-1"><strong>Người gửi:</strong> <?php echo htmlspecialchars($user_name); ?> <span class="badge bg-primary ms-1">User</span> (<?php echo htmlspecialchars($user_email); ?>)</p>
+                    <p class="mb-1"><strong>Người gửi:</strong> <?php echo htmlspecialchars($user_name); ?> 
+                        <?php if ($user_role === 'admin'): ?>
+                            <span class="badge bg-danger ms-1">Admin</span>
+                        <?php elseif ($user_role === 'quanly'): ?>
+                            <span class="badge bg-warning text-dark ms-1">Quản lý</span>
+                        <?php elseif ($user_role === 'nhomtruong'): ?>
+                            <span class="badge bg-success ms-1">Nhóm trưởng</span>
+                        <?php else: ?>
+                            <span class="badge bg-primary ms-1">User</span>
+                        <?php endif; ?>
+                        (<?php echo htmlspecialchars($user_email); ?>)</p>
                     <p class="mb-1"><strong>Ngày giờ báo cáo:</strong> <?php echo $created_at; ?></p>
                     <hr>
                     <div class="mb-3" style="white-space:pre-line;"><strong>Nội dung:</strong><br><?php echo nl2br(htmlspecialchars($content)); ?></div>
