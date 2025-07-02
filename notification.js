@@ -223,7 +223,7 @@ class NotificationClient {
                         message: `${data.userName} vừa online`,
                         type: 'info'
                     });
-                    this.playSound('info');
+                    // Không phát âm thanh khi có user online
                 }
             });
             
@@ -234,7 +234,7 @@ class NotificationClient {
                         message: `${data.userName} vừa offline`,
                         type: 'info'
                     });
-                    this.playSound('info');
+                    // Không phát âm thanh khi có user offline
                 }
             });
             
@@ -428,8 +428,7 @@ class NotificationClient {
                 type: type,
                 target: 'all'
             });
-            // Phát âm thanh ngay lập tức cho admin
-            this.playSound(type);
+            // Không phát âm thanh ở phía gửi
         }
     }
     
@@ -441,8 +440,7 @@ class NotificationClient {
                 target: 'department',
                 departmentId: departmentId
             });
-            // Phát âm thanh ngay lập tức cho admin
-            this.playSound(type);
+            // Không phát âm thanh ở phía gửi
         }
     }
     
@@ -454,8 +452,7 @@ class NotificationClient {
                 target: 'user',
                 userId: userId
             });
-            // Phát âm thanh ngay lập tức cho admin
-            this.playSound(type);
+            // Không phát âm thanh ở phía gửi
         }
     }
 }

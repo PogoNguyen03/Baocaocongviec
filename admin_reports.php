@@ -453,7 +453,7 @@ if (isset($_GET['delete_user']) && ($role === 'admin' || $role === 'quanly' || $
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-2">
                                     <a href="view_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                                    <?php if ($role === 'admin' || ($role === 'quanly' && $row['user_id'] != $_SESSION['user_id']) || ($row['user_id'] == $_SESSION['user_id'])): ?>
+                                    <?php if ($role === 'admin' || $row['user_id'] == $_SESSION['user_id']): ?>
                                         <a href="edit_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></a>
                                         <button onclick="confirmDelete(<?php echo $row['id']; ?>)" class="btn btn-sm btn-danger" title="Xóa"><i class="fa-solid fa-trash"></i></button>
                                     <?php endif; ?>

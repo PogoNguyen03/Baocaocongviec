@@ -112,6 +112,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Lấy danh sách ban
 $departments = $conn->query('SELECT id, name FROM departments ORDER BY name');
+// Tạo mảng ánh xạ id => tên ban
+$departments_arr = [];
+if ($departments) {
+    $departments->data_seek(0);
+    while ($d = $departments->fetch_assoc()) {
+        $departments_arr[$d['id']] = $d['name'];
+    }
+    // Reset lại con trỏ để dùng cho select phía dưới
+    $departments->data_seek(0);
+}
 
 // Lấy danh sách user (theo quyền)
 if ($role === 'admin') {
@@ -332,7 +342,7 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
             <!-- User online -->
             <div class="card mt-3">
                 <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"><i class="fa-solid fa-circle-dot me-2"></i>User online (<?php echo $online_count; ?>)</h6>
+                    <h6 class="mb-0"><i class="fa-solid fa-circle-dot me-2"></i>Người dùng online (<?php echo $online_count; ?>)</h6>
                 </div>
                 <div class="card-body">
                     <?php if (isset($onlineUsers['users']) && count($onlineUsers['users']) > 0): ?>
@@ -341,12 +351,22 @@ $online_count = isset($onlineUsers['count']) ? $onlineUsers['count'] : 0;
                                 <div class="bg-success rounded-circle" style="width: 8px; height: 8px; margin-right: 8px;"></div>
                                 <div>
                                     <small class="fw-semibold"><?php echo htmlspecialchars($user['userName']); ?></small>
-                                    <br><small class="text-muted"><?php echo $user['role']; ?> - Dept: <?php echo $user['departmentId']; ?></small>
+                                    <br><small class="text-muted">
+                                    <?php
+                                        $role_map = [
+                                            'admin' => 'Admin',
+                                            'quanly' => 'Quản lý',
+                                            'nhomtruong' => 'Nhóm trưởng',
+                                            'user' => 'Người dùng'
+                                        ];
+                                        echo isset($role_map[$user['role']]) ? $role_map[$user['role']] : $user['role'];
+                                    ?> - Ban: <?php echo isset($departments_arr[$user['departmentId']]) ? htmlspecialchars($departments_arr[$user['departmentId']]) : 'Không xác định'; ?>
+                                    </small>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <p class="text-muted mb-0">Không có user online</p>
+                        <p class="text-muted mb-0">Không có người dùng online</p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -387,39 +407,26 @@ document.getElementById('targetType').addEventListener('change', function() {
 function sendQuickNotification(type) {
     let message = '';
     let notificationType = 'info';
-    let soundType = 'default';
-    
     switch(type) {
         case 'report_reminder':
             message = '📢 Nhắc nhở: Hôm nay bạn chưa báo cáo công việc!';
             notificationType = 'warning';
-            soundType = 'report_reminder';
             break;
         case 'meeting_reminder':
             message = '📅 Nhắc nhở: Có cuộc họp quan trọng sắp diễn ra!';
             notificationType = 'warning';
-            soundType = 'meeting_reminder';
             break;
         case 'deadline_reminder':
             message = '⏰ Nhắc nhở: Deadline báo cáo sắp đến!';
             notificationType = 'warning';
-            soundType = 'deadline_reminder';
             break;
         case 'welcome':
             message = '👋 Chào mừng bạn đến với hệ thống báo cáo!';
             notificationType = 'success';
-            soundType = 'welcome';
             break;
     }
-    
     if (window.notificationClient && message) {
-        // Phát âm thanh trước khi gửi thông báo
-        window.notificationClient.playSound(soundType);
-        
-        // Gửi thông báo
         window.notificationClient.sendNotification(message, notificationType);
-        
-        // Hiển thị thông báo thành công
         showSuccessMessage('Thông báo đã được gửi thành công!');
     }
 }
@@ -450,12 +457,12 @@ function showSuccessMessage(message) {
 }
 
 // Test âm thanh
-function testSound(type) {
-    if (window.notificationClient) {
-        window.notificationClient.playSound(type);
-        showSuccessMessage(`Đã phát âm thanh ${type}!`);
-    }
-}
+// function testSound(type) {
+//     if (window.notificationClient) {
+//         window.notificationClient.playSound(type);
+//         showSuccessMessage(`Đã phát âm thanh ${type}!`);
+//     }
+// }
 
 // Auto refresh user online list
 // setInterval(function() {

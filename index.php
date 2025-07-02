@@ -269,7 +269,7 @@ if ($role === 'admin') {
                             <td><?php echo $row['created_at']; ?></td>
                             <td class="text-center">
                                 <a href="view_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info me-1" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                                <?php if ($role === 'admin' || ($role === 'quanly' && $row['user_id'] != $user_id) || ($role === 'user' && $row['user_id'] == $user_id)): ?>
+                                <?php if ($role === 'admin' || $row['user_id'] == $user_id): ?>
                                     <a href="edit_report.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary me-1" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></a>
                                     <button onclick="confirmDelete(<?php echo $row['id']; ?>)" class="btn btn-sm btn-danger" title="Xóa"><i class="fa-solid fa-trash"></i></button>
                                 <?php endif; ?>
