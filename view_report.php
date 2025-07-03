@@ -22,6 +22,40 @@ if ($stmt->fetch()) {
     exit;
 }
 $stmt->close();
+
+// Xử lý nội dung để loại bỏ khoảng trắng thừa nhưng giữ nguyên định dạng
+$content = trim($content);
+// Loại bỏ khoảng trắng thừa ở đầu mỗi dòng nhưng giữ nguyên thụt lề có ý nghĩa
+$lines = explode("\n", $content);
+$cleaned_lines = [];
+
+// Tìm số khoảng trắng thừa tối thiểu ở đầu các dòng
+$min_leading_spaces = PHP_INT_MAX;
+foreach ($lines as $line) {
+    if (trim($line) !== '') {
+        $leading_spaces = strlen($line) - strlen(ltrim($line));
+        if ($leading_spaces < $min_leading_spaces) {
+            $min_leading_spaces = $leading_spaces;
+        }
+    }
+}
+
+// Nếu có khoảng trắng thừa chung, loại bỏ chúng
+if ($min_leading_spaces > 0 && $min_leading_spaces < PHP_INT_MAX) {
+    foreach ($lines as $line) {
+        if (trim($line) === '') {
+            $cleaned_lines[] = '';
+        } else {
+            // Loại bỏ khoảng trắng thừa chung nhưng giữ nguyên thụt lề có ý nghĩa
+            $cleaned_lines[] = substr($line, $min_leading_spaces);
+        }
+    }
+} else {
+    // Không có khoảng trắng thừa chung, giữ nguyên
+    $cleaned_lines = $lines;
+}
+
+$content = implode("\n", $cleaned_lines);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -56,7 +90,10 @@ $stmt->close();
                         (<?php echo htmlspecialchars($user_email); ?>)</p>
                     <p class="mb-1"><strong>Ngày giờ báo cáo:</strong> <?php echo $created_at; ?></p>
                     <hr>
-                    <div class="mb-3" style="white-space:pre-line;"><strong>Nội dung:</strong><br><?php echo nl2br(htmlspecialchars($content)); ?></div>
+                    <div class="mb-3">
+                        <strong>Nội dung:</strong>
+                        <div class="mt-2 p-3 bg-light border rounded" style="white-space: pre-wrap; font-family: inherit; line-height: 1.6; text-align: left;"><?php echo htmlspecialchars($content); ?></div>
+                    </div>
                     <a href="javascript:history.back()" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
                 </div>
             </div>

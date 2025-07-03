@@ -15,6 +15,11 @@ $stmt_role->execute();
 $stmt_role->bind_result($role, $user_department_id);
 $stmt_role->fetch();
 $stmt_role->close();
+// Nếu là admin, quản lý, nhóm trưởng thì chuyển sang admin_reports.php
+if ($role === 'admin' || $role === 'quanly' || $role === 'nhomtruong') {
+    header('Location: admin_reports.php');
+    exit;
+}
 // Xử lý xóa báo cáo
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
@@ -127,7 +132,7 @@ if ($role === 'admin') {
     $limit = 10;
     $offset = ($page - 1) * $limit;
     // Đếm tổng số báo cáo
-    $count_sql = "SELECT COUNT(*) FROM reports $where_sql";
+    $count_sql = "SELECT COUNT(*) FROM reports JOIN users ON reports.user_id = users.id $where_sql";
     $count_stmt = $conn->prepare($count_sql);
     if ($params) $count_stmt->bind_param($types, ...$params);
     $count_stmt->execute();
@@ -136,7 +141,7 @@ if ($role === 'admin') {
     $count_stmt->close();
     $total_pages = ceil($total / $limit);
     // Lấy báo cáo trang hiện tại
-    $sql = "SELECT id, title, content, user_id, created_at FROM reports $where_sql ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+    $sql = "SELECT reports.id, reports.title, reports.content, users.name, reports.user_id, reports.created_at FROM reports JOIN users ON reports.user_id = users.id $where_sql ORDER BY reports.created_at DESC LIMIT $limit OFFSET $offset";
     $stmt = $conn->prepare($sql);
     if ($params) $stmt->bind_param($types, ...$params);
     $stmt->execute();

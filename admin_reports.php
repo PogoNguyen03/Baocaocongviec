@@ -12,7 +12,13 @@ $stmt->execute();
 $stmt->bind_result($role, $admin_name, $admin_department_id);
 $stmt->fetch();
 $stmt->close();
-if ($role !== 'admin' && $role !== 'quanly') {
+// Nếu là user thì chuyển về index.php
+if ($role === 'user') {
+    header('Location: index.php');
+    exit;
+}
+// Kiểm tra quyền admin và ban
+if ($role !== 'admin' && $role !== 'quanly' && $role !== 'nhomtruong') {
     echo '<div style="margin:40px auto;max-width:500px;" class="alert alert-danger">Bạn không có quyền truy cập trang này!</div>';
     exit;
 }

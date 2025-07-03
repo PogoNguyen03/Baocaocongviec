@@ -14,11 +14,11 @@ INSERT IGNORE INTO `departments` (`name`) VALUES
 ('ban IT');
 
 -- 3. Cập nhật dữ liệu role cũ trước khi thay đổi cấu trúc
--- Chuyển 2 tài khoản admin cụ thể
-UPDATE `users` SET `role` = 'admin' WHERE `email` = 'arkhip04122003@gmail.com';
-UPDATE `users` SET `role` = 'admin' WHERE `email` = 'nguyencanhphong135@gmail.com';
 -- Chuyển các tài khoản admin khác thành user
 UPDATE `users` SET `role` = 'user' WHERE `role` NOT IN ('admin', 'quanly', 'nhomtruong', 'user');
+-- Chuyển 2 tài khoản admin cụ thể
+UPDATE `users` SET `role` = 'quanly' WHERE `email` = 'arkhip04122003@gmail.com';
+UPDATE `users` SET `role` = 'admin' WHERE `email` = 'nguyencanhphong135@gmail.com';
 
 -- 5. Cập nhật trường role trong bảng users
 ALTER TABLE `users` 
