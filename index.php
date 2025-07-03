@@ -248,6 +248,17 @@ if ($role === 'admin') {
             <h5 class="mb-0 fw-bold"><i class="fa-solid fa-table-list me-2"></i><?php echo ($role === 'admin') ? 'Tất cả báo cáo' : ($role === 'quanly' ? 'Báo cáo của ban mình' : 'Danh sách báo cáo của bạn'); ?></h5>
         </div>
         <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-list me-2"></i>Danh sách báo cáo</h4>
+                <div>
+                    <a href="export_excel.php" class="btn btn-success btn-sm me-2">
+                        <i class="fa-solid fa-file-excel me-1"></i>Xuất Excel
+                    </a>
+                    <a href="report_form.php" class="btn btn-primary btn-sm">
+                        <i class="fa-solid fa-plus me-1"></i>Tạo báo cáo
+                    </a>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
